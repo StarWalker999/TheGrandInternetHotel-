@@ -6,8 +6,8 @@ from collections import deque
 
 # x, z, width, depth, height, material. These also drive the visible collision geometry.
 GROUND = [
-    [-15,0,.6,24,3.6,'wall'],[15,0,.6,24,3.6,'wall'],[0,-12,30,.6,3.6,'wall'],
-    [-8.75,12,12.5,.6,3.6,'wall'],[8.75,12,12.5,.6,3.6,'wall'],
+    [-22,0,.6,24,3.6,'wall'],[22,0,.6,24,3.6,'wall'],[0,-12,44,.6,3.6,'wall'],
+    [-12.25,12,19.5,.6,3.6,'wall'],[12.25,12,19.5,.6,3.6,'wall'],
     [-8,-3,7,1.8,1.3,'desk'],[-9,5,4,1.3,.9,'sofa'],[-9,8,4,1.3,.9,'sofa'],
     [-9,6.5,2,1,0.55,'table'],[9,6,4,1.3,.9,'sofa'],[9,8.7,4,1.3,.9,'sofa'],
     [9,7.35,2,1,0.55,'table'],[-13,-7,1,6,2.6,'shelf'],[11,-6,4,2,1.1,'bench'],
@@ -15,6 +15,8 @@ GROUND = [
 ]
 # Reading tables and small work bays keep the central hotel aisle clear.
 GROUND += [[-7,-8,3,1.4,1.05,'workdesk'],[7,-2,3,1.4,1.05,'workdesk'],[11,1,3,1.4,1.05,'workdesk']]
+GROUND += [[x,z,1.2,1.2,4.2,'column'] for x in (-18,18) for z in (-8,0,8)]
+GROUND += [[-17,4,4,1.5,1,'sofa'],[-17,6.3,2,1,.65,'table'],[17,4,4,1.5,1,'sofa'],[17,6.3,2,1,.65,'table'],[-20,-4,1,1,2,'plant'],[20,-4,1,1,2,'plant']]
 UPPER = [[-15,0,.6,24,2.8,'wall'],[15,0,.6,24,2.8,'wall'],[0,-12,30,.6,2.8,'wall'],[0,12,30,.6,2.8,'wall']]
 for side in (-1,1):
     for z in (-8,-4,0,4,8): UPPER.append([side*9,z,12,.25,1.6,'partition'])
@@ -36,7 +38,7 @@ LANDMARKS = {
 def clear(x,z,floor,radius=.35):
     if not all(math.isfinite(v) for v in (x,z)): return False
     if floor == 0:
-        if abs(x)>23 or z < -16 or z > 24: return False
+        if abs(x)>28 or z < -16 or z > 24: return False
     elif abs(x)>14.4 or abs(z)>11.4: return False
     for sx,sz,w,d,_,_ in (UPPER if floor else GROUND):
         if abs(x-sx)<w/2+radius and abs(z-sz)<d/2+radius: return False

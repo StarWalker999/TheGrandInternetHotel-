@@ -10,7 +10,7 @@ export function mountWalk(host){
     scene?.update(data);
     el('world-entry').hidden=!!me;el('walk-toolbar').hidden=!me;el('world-pad').hidden=!me;
     el('world-count').textContent=(data.residents||[]).filter(r=>r.floor===(me?.floor||0)).length+' residents · '+data.people.length+(data.people.length===1?' visitor':' visitors');
-    el('world-location').textContent=me?(me.floor?'FLOOR '+String(me.floor).padStart(2,'0')+' · GUEST ROOMS':Math.abs(me.x)<14.8&&me.z<11.7?'G · THE LOBBY':'THE FRONT COURTYARD'):'G · THE LOBBY';
+    el('world-location').textContent=me?(me.floor?'FLOOR '+String(me.floor).padStart(2,'0')+' · GUEST ROOMS':Math.abs(me.x)<21.8&&me.z<11.7?'G · THE LOBBY':'THE FRONT COURTYARD'):'G · THE LOBBY';
     el('world-position').textContent=me?`${me.name} · ${me.kind} · x ${me.x.toFixed(1)} / z ${me.z.toFixed(1)} · ${me.walking?'walking':'at rest'}`:'Hotel characters follow ambient routines.';
     if(me&&el('walk-status').textContent==='Enter the courtyard to begin.')status('Welcome back. Choose a destination or continue walking.');
     nearby=null;
@@ -52,7 +52,7 @@ export function mountWalk(host){
   const movementTimer=setInterval(move,110);
   const poll=async()=>{if(pollPending||disposed||document.hidden)return;pollPending=true;try{await request();}catch(e){if(!disposed)status('Connection lost. Reconnecting to the hotel…',true);}finally{pollPending=false;}};
   const pollingTimer=setInterval(poll,250);poll();
-  function openSpot(x,z,floor){if(floor?(Math.abs(x)>14.4||Math.abs(z)>11.4):(Math.abs(x)>23||z< -16||z>24))return false;return !(floor?snapshot.upper_solids:snapshot.ground_solids).some(([sx,sz,w,d])=>Math.abs(x-sx)<w/2+.35&&Math.abs(z-sz)<d/2+.35);}
+  function openSpot(x,z,floor){if(floor?(Math.abs(x)>14.4||Math.abs(z)>11.4):(Math.abs(x)>28||z< -16||z>24))return false;return !(floor?snapshot.upper_solids:snapshot.ground_solids).some(([sx,sz,w,d])=>Math.abs(x-sx)<w/2+.35&&Math.abs(z-sz)<d/2+.35);}
   function frame(now){if(disposed)return;const dt=Math.min(.06,(now-lastFrame)/1000);lastFrame=now;
     if(me&&predicted&&snapshot){
       if(keys.size&&now-lastResponse<700){const v=vector(),length=Math.hypot(v.dx,v.dz);if(length){const dx=v.dx/length*4.5*dt,dz=v.dz/length*4.5*dt;if(openSpot(predicted.x+dx,predicted.z,me.floor))predicted.x+=dx;if(openSpot(predicted.x,predicted.z+dz,me.floor))predicted.z+=dz;predicted.heading=Math.atan2(dx,dz);}}

@@ -31,9 +31,9 @@ class WalkingTests(unittest.TestCase):
         self.assertTrue(all(not p.get('ambient') for p in snap['people']))
 
     def test_collisions_and_no_teleport(self):
-        self.assertFalse(clear(15,0,0));self.assertFalse(clear(-8,-3,0))
+        self.assertFalse(clear(22,0,0));self.assertFalse(clear(-8,-3,0))
         self.assertFalse(clear(0,20,1))
-        with self.assertRaises(ValueError):path_to(0,20,15,0,0)
+        with self.assertRaises(ValueError):path_to(0,20,22,0,0)
         self.now=1
         self.world.command('human','move',{'dx':100000,'dz':0})
         self.assertLessEqual(self.world.get('human')['x'],1.126)
