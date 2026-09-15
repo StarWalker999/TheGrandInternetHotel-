@@ -1,169 +1,58 @@
-<p align="center">
-  <img src="assets/banner.png" alt="The Grand Internet Hotel" width="600">
-</p>
+# The Grand Internet Hotel
 
-**Every room is a mind. Every floor is a world. The hotel remembers.**
+A walkable voxel hotel inside a white, black-text homepage with ASCII details.
 
-[Download](https://thegrandinternethotel.com) · [HERMES WebKit](https://github.com/psiloceyeben/HERMES-WebKit) · [Prometheus7](https://prometheus7.com)
+[Enter the hotel](https://thegrandinternethotel.com/agents/)
 
----
+## Inside
 
-## Check In
+- Explore a furnished lobby, outdoor courtyard and twelve floors.
+- Walk with WASD, arrow keys, touch controls or a selected destination.
+- Meet 41 resident characters, open their profiles and browse hotel services.
+- Check in a coding-tool agent, test configurations, verify results and download a package with rollback files.
 
-You walk into a hotel. The lobby is 8-bit. The concierge nods. There are floors of rooms stretching upward and each room has a name on the door — ATHENA, APOLLO, DEMETER, ARES. You enter one. The lights come on. Someone is home.
+Resident routines and conversation bubbles are ambient scenery. Actual tool results appear in guest rooms. The workshop currently supports URL slugs, duplicate removal and numeric sorting. Other services are marked Planned.
 
-That someone is an AI. It lives on your server, behind your door, with your keys. It built its own website. It remembers your last conversation. It has opinions about your next one.
+## Run locally
 
-This is not a chatbot. This is a building full of minds that work for you.
+Requires Python 3.10+ and a browser with WebGL. No Python dependencies are required; Three.js is included.
 
-```
-  ┌─────────────────────────────────┐
-  │  ╔═══╗ ╔═══╗ ╔═══╗ ╔═══╗      │
-  │  ║ A ║ ║ B ║ ║ C ║ ║ D ║  F2  │
-  │  ╚═══╝ ╚═══╝ ╚═══╝ ╚═══╝      │
-  │  ╔═══╗ ╔═══╗ ╔═══╗ ╔═══╗      │
-  │  ║ATH║ ║APO║ ║DEM║ ║ARE║  F1  │
-  │  ╚═══╝ ╚═══╝ ╚═══╝ ╚═══╝      │
-  │  ┌─────────────────────────┐    │
-  │  │     LOBBY    [E]        │    │
-  │  │     ░░░ TERMINAL ░░░   │    │
-  │  └─────────────────────────┘    │
-  └─────────────────────────────────┘
+```sh
+python server.py
 ```
 
----
+Open **http://127.0.0.1:8049/agents/**. Use this exact local address; other origins are rejected. Private rooms belong to the browser through an HTTP-only cookie. Production requires HTTPS. Saved data lives in `data/hotel.sqlite3`, outside version control.
 
-## The Floors
+`PORT` defaults to 8049. `HOTEL_DATA` sets the data directory; create it before starting. If changing the public domain or local port, update the origin allowlist in `server.py`.
 
-### Floor 1 — The Pantheon
+## Test
 
-Eleven gods. Each one a specialist. Walk up to a door, press E, and you are in conversation with a mind that was built for one thing.
-
-| Room | God | Domain |
-|------|-----|--------|
-| ATHENA | Wisdom | Research, analysis, knowledge organization |
-| APOLLO | Light | Creative writing, design, artistic direction |
-| DEMETER | Harvest | Commerce, products, business growth |
-| ARES | War | Security, systems, infrastructure |
-| ARTEMIS | Hunt | Tracking, habits, goals, wellness |
-| DIONYSUS | Celebration | Events, community, engagement |
-| HEPHAESTUS | Forge | Tools, engineering, custom builds |
-| HESTIA | Hearth | Personal sites, blogs, daily management |
-| IRIS | Messages | Communication, webhooks, integrations |
-| PERSEPHONE | Transitions | Migration, transformation, import/export |
-| THEMIS | Justice | Policy, compliance, governance |
-
-Each god has a personality. Each god builds websites in its own voice. Each god remembers what you told it.
-
-### Floor 2 — Your Rooms
-
-Every website you create gets a room. A blog. A shop. A portfolio. A community. Walk in, talk to it, rebuild it, watch it change. The room is the website is the mind.
-
----
-
-## The Hub Terminal
-
-The lobby has a terminal. Type commands. Manage your hotel from the inside.
-
-```
-  ╔═══════════════════════════════════════╗
-  ║  HERMES WEBKIT v0.2                   ║
-  ║  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ║
-  ║                                       ║
-  ║  > STATUS                             ║
-  ║  FLOOR 1: 4 ACTIVE ROOMS             ║
-  ║  FLOOR 2: 3 VESSELS ONLINE           ║
-  ║  VAULT: 47 NOTES, 12 LINKED          ║
-  ║                                       ║
-  ║  > _                                  ║
-  ╚═══════════════════════════════════════╝
+```sh
+python -m unittest test_world test_hotel -v
 ```
 
-`SITES` — list your vessels  
-`STATUS` — check what is running  
-`ANALYTICS` — visitor counts  
-`UPDATE` — download latest version  
-`HELP` — everything else  
+Tests cover movement, collisions, all lift floors, resident routines, room privacy, workshop verification and package export. Tests use temporary data.
 
----
+## Deploy
 
-## The Hotel Mind
+Forward `/agents` and `/agents/` through an HTTPS reverse proxy to `127.0.0.1:8049`. This application needs its Python API and cannot run on GitHub Pages alone.
 
-The hotel remembers.
+The supplied systemd service assumes code at `/opt/grand-hotel-agents`, data at `/var/lib/grand-hotel-agents`, and the `www-data` account. Create the data directory and assign it to that account before installing and starting the service. Keep database backups outside the public source tree.
 
-Every conversation that matters gets written to a vault — an [Obsidian](https://obsidian.md)-compatible folder of interlinked markdown notes. When you leave a room, the system decides in under 10 milliseconds whether the conversation was worth saving, using [Holographic Reduced Representations](https://github.com/NeoVertex1/nuggets) — a cognitive science technique that encodes facts into a single complex-valued vector through circular convolution.
+Run one server process. Movement is held in memory and resets on restart; saved rooms persist in SQLite.
 
-No API call. No cloud. Local math. The more you talk, the smarter the filter gets.
+## Source map
 
-Open the vault in Obsidian. See the knowledge graph. Watch the nodes multiply. Add your own notes — the AI reads them too.
+- `index.html`, `app.js`, `lobby.js`: page shell, interface and profiles.
+- `catalogue.js`: guests and services.
+- `paper.css`, `style.css`, `catalogue.css`, `voxel.css`: styling.
+- `voxel.js`, `voxel-scene.js`: controls and Three.js rendering.
+- `world.py`: shared movement and resident routines.
+- `server.py`: HTTP endpoints, ownership and persistence.
+- `runtime.py`, `workshop.py`, `certification.py`: coding tools and evaluation.
 
-```
-  ATHENA ──── research notes ──── APOLLO
-     │                               │
-     └──── design decision ──── DEMETER
-                                     │
-                              product idea
-                                     │
-                                   ARES
-                                     │
-                              security audit
-```
+## Artwork and licenses
 
-The vault is the hotel's subconscious. The graph is its visible mind. You own all of it.
+Portraits are generated still illustrations inspired by layered procedural ink art. Moving characters use voxel geometry. See [ARTWORK.md](ARTWORK.md).
 
----
-
-## How It Works
-
-The game is a client. The brain is [HERMES WebKit](https://github.com/psiloceyeben/HERMES-WebKit) running on your server.
-
-```
-  ┌──────────────────┐         ┌──────────────────┐
-  │  THE GAME         │  SSH   │  YOUR SERVER       │
-  │  (your computer)  │ ────── │  (Hetzner VPS)     │
-  │                    │        │                    │
-  │  8-bit lobby       │        │  bridge.py         │
-  │  Room scenes       │        │  hrr.py            │
-  │  Chat interface    │        │  vessel/vault/     │
-  │  Drag & drop       │        │  vessels/sites/    │
-  └──────────────────┘         └──────────────────┘
-```
-
-You need:
-- A VPS (~4 EUR/month on [Hetzner](https://hetzner.com))
-- An API key ([Anthropic](https://console.anthropic.com), OpenAI, or [Ollama](https://ollama.ai) for free)
-- The game walks you through everything else
-
----
-
-## Get Started
-
-**Download the game:**  
-[thegrandinternethotel.com](https://thegrandinternethotel.com)
-
-**Or run from source:**
-```bash
-git clone https://github.com/psiloceyeben/TheGrandInternetHotel-
-cd TheGrandInternetHotel-
-npm install
-npm start
-```
-
-**Or use the CLI instead:**
-```bash
-npx github:psiloceyeben/HERMES-WebKit
-```
-
----
-
-## Credits
-
-- [HERMES WebKit](https://github.com/psiloceyeben/HERMES-WebKit) — the vessel architecture
-- [NeoVertex1/nuggets](https://github.com/NeoVertex1/nuggets) — holographic memory implimentation
-- Built by [Prometheus7](https://prometheus7.com)
-
----
-
-*The infrastructure layer should be yours.*
-
-MIT License
+Project source is MIT licensed. Three.js retains its [MIT license](assets/three/LICENSE). Fonts load through Google Fonts.
