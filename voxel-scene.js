@@ -1,3 +1,4 @@
+import {createResident} from './characters.js';
 import * as T from './assets/three/three.module.js';
 
 const C={paper:0xf6f3eb,wall:0xe9e1cc,trim:0xf8f2df,stone:0xc7c1af,ink:0x383931,sage:0x8d9d7c,roof:0x74876b,orange:0xd97937,amber:0xecc879,wood:0x9e7959,rose:0xc69480,blue:0x859b9e,tile:0xe5e2d5};
@@ -48,7 +49,7 @@ function exterior(){const b=new Blocks();
   b.box(0,1.65,12.25,4.2,3.3,.4,C.ink);b.box(-1.04,1.55,12.5,1.8,2.9,.13,C.amber);b.box(1.04,1.55,12.5,1.8,2.9,.13,C.amber);
   for(let i=0;i<10;i++){b.box(-4.05+i*.9,3.7,13.4,.9,.35,3.5,i%2?C.trim:C.orange);b.box(-4.05+i*.9,3.3,15.1,.9,.55,.25,i%2?C.trim:C.orange);}
   for(const x of [-4.6,4.6]){b.box(x,1.8,14.8,.16,3.6,.16,C.ink);b.box(x,3,13.1,.6,.9,.65,C.amber);}
-  const g=b.finish(),plaque=sign('THE GRAND\nINTERNET HOTEL',14,3.5);plaque.position.set(0,38.75,12.51);g.add(plaque);for(let floor=1;floor<12;floor+=2){const guest=actor('agent',floor%3===0?C.blue:floor%3===1?C.orange:C.sage);guest.scale.setScalar(.5);guest.position.set(-11+(floor%5)*4.7,floor*3+.5,12.9);g.add(guest);}
+  const g=b.finish(),plaque=sign('THE GRAND\nINTERNET HOTEL',14,3.5);plaque.position.set(0,38.75,12.51);g.add(plaque);for(let floor=1;floor<12;floor+=2){const guest=actor('agent',C.sage,['brass','vellum','sable','clover','cinder','marble'][(floor-1)/2]);guest.scale.setScalar(.5);guest.position.set(-11+(floor%5)*4.7,floor*3+.5,12.9);g.add(guest);}
   return g;
 }
 function yard(){const b=new Blocks();b.box(0,-.7,2,53,.6,48,C.stone);b.box(0,-.35,4,49,.1,42,C.tile);
@@ -85,16 +86,12 @@ function interior(solids,upper=false){const b=floorBase(upper);
   else{for(const side of [-1,1])for(let i=0;i<6;i++){const p=sign(String(i+1+(side>0?6:0)).padStart(2,'0'),.85,.45);p.position.set(side*3,1.9,-10+i*4);p.rotation.y=side<0?Math.PI/2:-Math.PI/2;g.add(p);}}
   return g;
 }
-function actor(kind,color=C.sage){const g=new T.Group(),body=new Blocks();
+function actor(kind,color=C.sage,character){if(kind==='agent')return createResident(character||'moss',Blocks,C,T);const g=new T.Group(),body=new Blocks();
   if(kind==='human'){
     body.box(0,1.1,0,.8,1.1,.5,color);body.box(0,1.95,0,.7,.7,.65,0xd8b99d);body.box(0,2.3,0,.78,.16,.72,C.ink);body.box(-.51,1.05,0,.24,1,.35,color);body.box(.51,1.05,0,.24,1,.35,color);
     for(const x of [-.17,.17]){body.box(x,1.98,.34,.08,.09,.04,C.ink);body.box(x,.35,0,.26,.7,.35,C.ink);}
-  }else{
-    body.box(0,.85,0,1.15,1.1,.8,color);body.box(0,1.6,0,.85,.45,.7,color);body.box(-.3,1.95,0,.23,.5,.23,color);body.box(.3,1.88,0,.23,.4,.23,color);
-    for(const [x,y] of [[-.3,1.3],[.3,1.3],[0,.92],[-.3,1.99],[.3,1.94]]){body.box(x,y,.43,.22,.23,.1,C.trim);body.box(x+.025,y,.49,.1,.12,.03,C.ink);}
-    for(const side of [-1,1]){body.box(side*.75,.55,0,.5,.35,.45,color);body.box(side*.96,.76,0,.22,.4,.3,color);body.box(side*.4,.21,.15,.35,.25,.7,color);}
   }
-  if(kind==='agent'){if(color===C.blue){body.box(0,1.6,.63,1.2,.5,.17,C.ink);body.box(0,1.63,.74,1,.34,.04,C.trim);body.box(0,1.45,0,1.25,.16,.85,C.blue);}else if(color===C.rose){body.box(0,.85,.58,.92,.55,.12,C.trim);for(const x of [-.38,.38])body.box(x,2.13,0,.26,.4,.27,color);}else{body.box(0,2.15,0,.95,.3,.8,C.orange);body.box(0,2.04,0,1.04,.08,.86,C.ink);body.box(.86,.7,.18,.15,.55,.13,C.amber);}}g.add(body.finish());return g;
+  g.add(body.finish());return g;
 }
 
 export class HotelScene {
@@ -135,7 +132,7 @@ export class HotelScene {
   setLayout(data){if(this.lobby)return;this.lobby=interior(data.ground_solids);this.upper=interior(data.upper_solids,true);this.scene.add(this.lobby,this.upper);this.lobby.visible=false;this.upper.visible=false;}
   update(snapshot){this.snapshot=snapshot;this.me=snapshot.people.find(p=>p.id===snapshot.you);this.setLayout(snapshot);const occupants=[...snapshot.people,...(snapshot.residents||[])];
     const ids=new Set(occupants.map(p=>p.id));for(const [id,mesh] of this.actorMeshes){if(!ids.has(id)){this.scene.remove(mesh);this.release(mesh);this.actorMeshes.delete(id);}}
-    for(const p of occupants){let m=this.actorMeshes.get(p.id);if(m&&m.userData.kind!==p.kind){this.scene.remove(m);this.release(m);this.actorMeshes.delete(p.id);m=null;}if(!m){m=actor(p.kind,p.portrait==='blue'?C.blue:p.portrait==='rose'?C.rose:p.id===snapshot.you?C.orange:C.sage);m.userData.kind=p.kind;m.position.set(p.x,0,p.z);this.scene.add(m);this.actorMeshes.set(p.id,m);}m.userData.state=p;}
+    for(const p of occupants){let m=this.actorMeshes.get(p.id);if(m&&m.userData.kind!==p.kind){this.scene.remove(m);this.release(m);this.actorMeshes.delete(p.id);m=null;}if(!m){m=actor(p.kind,p.portrait==='blue'?C.blue:p.portrait==='rose'?C.rose:p.id===snapshot.you?C.orange:C.sage,p.character);m.userData.kind=p.kind;m.position.set(p.x,0,p.z);this.scene.add(m);this.actorMeshes.set(p.id,m);}m.userData.state=p;}
     if(this.me){this.floor=this.me.floor;this.inside=this.floor>0||(Math.abs(this.me.x)<21.8&&this.me.z<11.7&&this.me.z>-12);this.exterior.visible=!this.inside;this.lobby.visible=this.inside&&this.floor===0;this.upper.visible=this.floor>0;this.yard.visible=this.floor===0;
       this.target.set(this.me.x,this.inside?1.5:9,this.me.z-(this.inside?0:8));}
     else{this.floor=0;this.inside=true;this.exterior.visible=false;this.lobby.visible=true;this.upper.visible=false;this.yard.visible=true;this.target.set(0,1.5,1);}

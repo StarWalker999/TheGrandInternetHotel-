@@ -20,3 +20,11 @@
 ## Scope
 
 Live staging uses the same current lobby and world code as this repository. Staging additionally retains a separate design archive; the public package excludes it. The private test stay is retained in the testing browser. Resident activity is ambient animation; planned services remain unavailable. This audit does not claim a load test or a comprehensive security assessment.
+
+## Cast and Simulation Suite update
+
+- All 41 named residents have different portrait file hashes and voxel geometry; every model has finite, positive box dimensions. All portrait images were visually inspected.
+- Browser checked all 41 catalogue profile links and decoded each portrait successfully.
+- Browser completed parcel collection and delivery, then reset the practice task. Unit checks cover collisions and prevent completion without the parcel.
+- Desktop lobby and mobile Simulation Suite visually inspected; 390px page has no horizontal overflow. No JavaScript page errors in these flows.
+- Odyssey-3 explanation links the official announcement and explicitly marks the connection as awaiting public access. The parcel exercise is local browser logic, not Odyssey-powered.

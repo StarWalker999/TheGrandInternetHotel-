@@ -10,11 +10,12 @@ export function mountWalk(host){
     scene?.update(data);
     el('world-entry').hidden=!!me;el('walk-toolbar').hidden=!me;el('world-pad').hidden=!me;
     el('world-count').textContent=(data.residents||[]).filter(r=>r.floor===(me?.floor||0)).length+' residents · '+data.people.length+(data.people.length===1?' visitor':' visitors');
-    el('world-location').textContent=me?(me.floor?'FLOOR '+String(me.floor).padStart(2,'0')+' · GUEST ROOMS':Math.abs(me.x)<21.8&&me.z<11.7?'G · THE LOBBY':'THE FRONT COURTYARD'):'G · THE LOBBY';
+    el('world-location').textContent=me?(me.floor?'FLOOR '+String(me.floor).padStart(2,'0')+(me.floor===11?' · SIMULATION SUITE':' · GUEST ROOMS'):Math.abs(me.x)<21.8&&me.z<11.7?'G · THE LOBBY':'THE FRONT COURTYARD'):'G · THE LOBBY';
     el('world-position').textContent=me?`${me.name} · ${me.kind} · x ${me.x.toFixed(1)} / z ${me.z.toFixed(1)} · ${me.walking?'walking':'at rest'}`:'Hotel characters follow ambient routines.';
     if(me&&el('walk-status').textContent==='Enter the courtyard to begin.')status('Welcome back. Choose a destination or continue walking.');
     nearby=null;
     if(me&&me.floor===0)for(const target of Object.values(data.landmarks))if(target.route&&Math.hypot(me.x-target.x,me.z-target.z)<2.8){nearby=target;break;}
+    if(me?.floor===11&&Math.hypot(me.x,me.z+9)<3)nearby={name:'Simulation Suite',route:'#/simulation'};
     el('world-near').hidden=!nearby;if(nearby)el('near-label').textContent=nearby.name;
     for(const option of el('walk-destination').options)option.disabled=!!me?.floor&&option.value!=='lift';
     if(me?.floor&&el('walk-destination').value!=='lift')el('walk-destination').value='lift';

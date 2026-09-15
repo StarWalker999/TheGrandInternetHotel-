@@ -69,14 +69,20 @@ class HotelWorld:
     def __init__(self,clock=time.monotonic):
         self.clock=clock; self.last=clock(); self.people={};self.residents=[]
         families=[('Moss','Concierge','sage','A warm welcome and a key to your room.','checkin'),('Inkwell','Librarian','blue','Books, sources, and a quiet place to think.','services/library'),('Pip','Bellhop','rose','Packages, room deliveries, and directions.','services/bellhop'),('Fern','Host','sage','Find a seat and settle into the hotel.','services/walk'),('Tally','Workshop keeper','blue','A desk for tools and test results.','services/workshop'),('Quill','Writer in residence','rose','A fresh page and a second draft.','services/writing'),('Lock','Night porter','sage','A familiar face on every floor.','services/rooms'),('Echo','Guest guide','blue','Help finding your way around.','services')]
+        upper_names=['Brass', 'Vellum', 'Sable', 'Clover', 'Cinder', 'Marble', 'Lumen', 'Rue', 'Cobalt', 'Osier', 'Thimble', 'Morrow', 'Juniper', 'Fable', 'Gasket', 'Opal', 'Briar', 'Selkie', 'Filigree', 'Truffle', 'Patch', 'Gossamer', 'Rook', 'Dulse', 'Nacre', 'Tinsel', 'Mistral', 'Saffron', 'Tock', 'Wisp', 'Auburn', 'Mim', 'Periwinkle']
+        upper_traits=['a living reception bell', 'a folded parchment heron', 'a velvet moth', 'a walking bonsai', 'an ember-backed salamander', 'an ivory stone gargoyle', 'a lantern-headed firefly', 'a ribbon eel', 'a porcelain crab', 'a wicker basket creature', 'a thimble-bodied tailor', 'a midnight bat', 'a mantis gardener', 'a living leather book', 'a brass beetle', 'an opal snail', 'a rose-headed gardener', 'a long-necked seal', 'a gold-wire peacock', 'a mushroom chef', 'a traveling suitcase', 'a jellyfish seamstress', 'a chess-rook porter', 'a coral seahorse', 'a clam-shell pianist', 'a magpie collector', 'a spiral cloud', 'a gecko sommelier', 'a clockwork owl', 'a porcelain ghost', 'a lobster porter', 'an origami fox', 'an ammonite librarian']
+        upper_roles=['Reception assistant', 'Archivist', 'Tea attendant', 'Gardener', 'Fire keeper', 'Coffee host', 'Lamp lighter', 'Tailor', 'Tea attendant', 'Florist', 'Tailor', 'Night guide', 'Gardener', 'Librarian', 'Mechanic', 'Key keeper', 'Florist', 'Towel attendant', 'Salon host', 'Chef', 'Bellhop', 'Seamstress', 'Porter', 'Navigator', 'Musician', 'Collector', 'Weather keeper', 'Sommelier', 'Timekeeper', 'Flower courier', 'Bellhop', 'Cartographer', 'Librarian']
         ground=[(-8,0),(-10,-8),(3,6),(-6,6),(8,-5),(11,3),(-3,-9),(6,8)]
         for floor in range(12):
             for j in range(8 if floor==0 else 3):
                 index=j if floor==0 else (floor+j)%8
                 name,role,color,bio,service=families[index]
-                ident=name.lower() if floor==0 else f'{name.lower()}-{floor:02}-{j+1}'
+                if floor:
+                    k=(floor-1)*3+j
+                    name=upper_names[k];role=upper_roles[k];bio=name+' is '+upper_traits[k]+', with a place and a purpose of their own in the hotel.';service='services'
+                ident=name.lower()
                 x,z=ground[j] if floor==0 else [(-6,-6),(6,2),(0,6)][j]
-                self.residents.append(dict(id='staff-'+ident,name=name if floor==0 else name+' '+str(floor)+chr(65+j),role=role,portrait=color,bio=bio,service=service,home_floor=floor,room=f'{floor:02}{j+1}',floor=floor,x=float(x),z=float(z),heading=0.,kind='agent',ambient=True,path=[],phase=j,wait_until=self.last+j*.8,activity='Settling in',speech='',journeys=0))
+                self.residents.append(dict(id='staff-'+ident,name=name,character=ident,role=role,portrait=color,bio=bio,service=service,home_floor=floor,room=f'{floor:02}{j+1}',floor=floor,x=float(x),z=float(z),heading=0.,kind='agent',ambient=True,path=[],phase=j,wait_until=self.last+j*.8,activity='Settling in',speech='',journeys=0))
 
     def tick_residents(self,now,dt):
         ground=[(-8,0),(-10,-6),(3,6),(-6,6),(8,-5),(11,3),(-3,-9),(6,8),(0,-9)]

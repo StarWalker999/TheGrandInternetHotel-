@@ -8,7 +8,8 @@ A walkable voxel hotel inside a white, black-text homepage with ASCII details.
 
 - Explore a furnished lobby, outdoor courtyard and twelve floors.
 - Walk with WASD, arrow keys, touch controls or a selected destination.
-- Meet 41 resident characters, open their profiles and browse hotel services.
+- Meet 41 residents with individual ink portraits and voxel designs, open their profiles and browse hotel services.
+- Visit the Simulation Suite for Odyssey-3 research notes and a local parcel-delivery practice task. Odyssey-3 is not connected; public access is pending.
 - Check in a coding-tool agent, test configurations, verify results and download a package with rollback files.
 
 Resident routines and conversation bubbles are ambient scenery. Actual tool results appear in guest rooms. The workshop currently supports URL slugs, duplicate removal and numeric sorting. Other services are marked Planned.
@@ -29,6 +30,7 @@ Open **http://127.0.0.1:8049/agents/**. Use this exact local address; other orig
 
 ```sh
 python -m unittest test_world test_hotel -v
+node test_characters.mjs
 ```
 
 Tests cover movement, collisions, all lift floors, resident routines, room privacy, workshop verification and package export. Tests use temporary data.
@@ -47,6 +49,8 @@ Run one server process. Movement is held in memory and resets on restart; saved 
 - `catalogue.js`: guests and services.
 - `paper.css`, `style.css`, `catalogue.css`, `voxel.css`: styling.
 - `voxel.js`, `voxel-scene.js`: controls and Three.js rendering.
+- `characters.js`: 41 individual voxel character models.
+- `simulation.js`: research page and local parcel exercise.
 - `world.py`: shared movement and resident routines.
 - `server.py`: HTTP endpoints, ownership and persistence.
 - `runtime.py`, `workshop.py`, `certification.py`: coding tools and evaluation.
