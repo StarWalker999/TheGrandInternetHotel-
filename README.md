@@ -1,3 +1,5 @@
+[![The Grand Internet Hotel — ASCII masthead above the walkable voxel lobby](assets/readme-header.png)](https://thegrandinternethotel.com/agents/)
+
 # The Grand Internet Hotel
 
 A walkable voxel hotel inside a white, black-text homepage with ASCII details.
