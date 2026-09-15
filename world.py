@@ -15,7 +15,7 @@ GROUND = [
 ]
 # Reading tables and small work bays keep the central hotel aisle clear.
 GROUND += [[-7,-8,3,1.4,1.05,'workdesk'],[7,-2,3,1.4,1.05,'workdesk'],[11,1,3,1.4,1.05,'workdesk']]
-GROUND += [[x,z,1.2,1.2,4.2,'column'] for x in (-18,18) for z in (-8,0,8)]
+GROUND += [[x,z,1.8,1.8,4.2,'column'] for x in (-18,18) for z in (-8,0,8)]
 GROUND += [[-17,4,4,1.5,1,'sofa'],[-17,6.3,2,1,.65,'table'],[17,4,4,1.5,1,'sofa'],[17,6.3,2,1,.65,'table'],[-20,-4,1,1,2,'plant'],[20,-4,1,1,2,'plant']]
 UPPER = [[-15,0,.6,24,2.8,'wall'],[15,0,.6,24,2.8,'wall'],[0,-12,30,.6,2.8,'wall'],[0,12,30,.6,2.8,'wall']]
 for side in (-1,1):

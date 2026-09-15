@@ -30,6 +30,12 @@ class WalkingTests(unittest.TestCase):
         self.assertTrue(all(r['ambient'] and r['bio'] for r in snap['residents']))
         self.assertTrue(all(not p.get('ambient') for p in snap['people']))
 
+    def test_expanded_lobby_wings_and_column_bases(self):
+        self.assertFalse(clear(18.9,0,0))
+        self.assertTrue(clear(20,6,0))
+        for x in (-20,20):
+            self.assertTrue(path_to(0,6,x,6,0))
+
     def test_collisions_and_no_teleport(self):
         self.assertFalse(clear(22,0,0));self.assertFalse(clear(-8,-3,0))
         self.assertFalse(clear(0,20,1))
