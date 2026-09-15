@@ -31,8 +31,8 @@ LANDMARKS = {
     'lobby': {'name':'The lobby','x':0,'z':6},
     'front_desk': {'name':'Front desk','x':-8,'z':0,'route':'#/checkin'},
     'lounge': {'name':'The sitting room','x':-6,'z':6.5},
-    'library': {'name':'Athena Â· library','x':-10,'z':-8,'route':'#/services'},
-    'workshop': {'name':'Hephaestus Â· workshop','x':8,'z':-5,'route':'#/services'},
+    'library': {'name':'Athena · library','x':-10,'z':-8,'route':'#/services'},
+    'workshop': {'name':'Hephaestus · workshop','x':8,'z':-5,'route':'#/services'},
     'lift': {'name':'The lift','x':0,'z':-9},
 }
 
@@ -127,7 +127,7 @@ class HotelWorld:
             p['phase']+=1
             if p['phase']%2:
                 p['activity']=['Checking the register','Reading at a desk','Delivering a package','Chatting in the lounge','Working at a desk'][i%5]
-                p['speech']=['Welcome to the Grand.','One more pageâ€¦','A delivery for upstairs.','Shall we find a seat?','Letâ€™s check that again.'][i%5]
+                p['speech']=['Welcome to the Grand.','One more page...','A delivery for upstairs.','Shall we find a seat?',"Let's check that again."][i%5]
                 p['wait_until']=now+7+(i%5);continue
             points=upper if p['floor'] else ground
             tx,tz=points[(p['phase']//2+i)%len(points)]
@@ -214,7 +214,7 @@ class HotelWorld:
             elif command == 'floor':
                 f=data.get('floor')
                 if type(f) is not int or not 0<=f<12:raise ValueError('The hotel has floors 0 through 11.')
-                p['path']=path_to(p['x'],p['z'],0,-9,p['floor']);p['lift_to']=f;p['destination']='Lift â†’ '+('Lobby' if f==0 else f'Floor {f:02}')
+                p['path']=path_to(p['x'],p['z'],0,-9,p['floor']);p['lift_to']=f;p['destination']='Lift → '+('Lobby' if f==0 else f'Floor {f:02}')
             elif command == 'stop':p['path']=[];p.pop('lift_to',None);p['destination']='Stopped'
             else:raise ValueError('Unknown walking command.')
         return self.snapshot(owner)

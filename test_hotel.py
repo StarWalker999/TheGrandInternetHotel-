@@ -36,6 +36,19 @@ class HotelFlow(unittest.TestCase):
         self.assertEqual(status,200,r)
         return r
 
+    def test_simulation_persistence_privacy_and_conflicts(self):
+        code,run=self.req('simulation/start',{'task':'parcel'})
+        self.assertEqual(code,200)
+        ident=run['id']
+        self.assertEqual(self.req('simulation/'+ident,owner='b'*64)[0],403)
+        self.assertEqual(self.req('simulation/action',{'id':ident,'action':'step'},owner='b'*64)[0],403)
+        code,after=self.req('simulation/action',{'id':ident,'action':'step','seq':0})
+        self.assertEqual(code,200)
+        self.assertEqual(self.req('simulation/action',{'id':ident,'action':'step','seq':0})[0],400)
+        self.assertEqual(self.req('simulation/'+ident)[1]['frames'],after['frames'])
+        self.assertIn(ident,[r['id'] for r in self.req('simulation')[1]['runs']])
+        self.assertNotIn(ident,[r['id'] for r in self.req('simulation',owner='b'*64)[1]['runs']])
+
     def test_full_stay_export_privacy_and_rollback(self):
         r=self.create()
         self.assertEqual(self.req("action",{"id":r["id"],"action":"verify"})[0],400)

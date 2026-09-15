@@ -8,6 +8,7 @@ from runtime import DEFAULT
 from workshop import assess, propose
 from certification import verify, BENCHMARK
 from world import WORLD
+import hotel_sim
 
 ROOT = Path(__file__).parent
 DATA = Path(os.environ.get("HOTEL_DATA", str(ROOT / "data")))
@@ -26,6 +27,7 @@ def db():
     c = sqlite3.connect(DB, timeout=15, factory=HotelConnection)
     c.execute("CREATE TABLE IF NOT EXISTS rooms (id TEXT PRIMARY KEY, owner TEXT, data TEXT)")
     c.execute("CREATE TABLE IF NOT EXISTS certificates (id TEXT PRIMARY KEY, room TEXT, data TEXT)")
+    c.execute("CREATE TABLE IF NOT EXISTS simulation_runs (id TEXT PRIMARY KEY, owner TEXT, data TEXT)")
     return c
 
 def digest(value):
@@ -81,6 +83,15 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path.rstrip("/")
         owner = self.owner()
         try:
+            if path == "/agents/api/simulation":
+                with db() as c: rows=c.execute("SELECT data FROM simulation_runs WHERE owner=? ORDER BY rowid DESC LIMIT 20",(owner,)).fetchall()
+                return self.send(200,{'tasks':hotel_sim.TASKS,'runs':[{k:r[k] for k in ('id','task','status','actions','rejected','created')} for r in [json.loads(row[0]) for row in rows]]})
+            if path.startswith('/agents/api/simulation/'):
+                ident=path.split('/')[-1]
+                with db() as c: row=c.execute("SELECT owner,data FROM simulation_runs WHERE id=?",(ident,)).fetchone()
+                if not row:raise ValueError('Simulation run not found.')
+                if row[0]!=owner:raise PermissionError('This run belongs to another browser.')
+                return self.send(200,hotel_sim.observe(json.loads(row[1])))
             if path == "/agents/api/world":
                 with MUTATION_LOCK: snapshot = WORLD.snapshot(owner)
                 return self.send(200, snapshot)
@@ -116,7 +127,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/agents/api/health": return self.send(200, {"status": "ok"})
             relative = path.removeprefix("/agents/")
             file = ROOT / relative
-            allowed = {"garden-characters.js":"text/javascript", "character-creator.js":"text/javascript", "simulation.js":"text/javascript", "app.js": "text/javascript", "style.css": "text/css", "voxel.js": "text/javascript", "voxel.css": "text/css", "voxel-scene.js": "text/javascript", "catalogue.js": "text/javascript", "catalogue.css": "text/css", "lobby.js":"text/javascript", "paper.css":"text/css"}
+            allowed = {"simulation-world.js":"text/javascript", "garden-characters.js":"text/javascript", "character-creator.js":"text/javascript", "simulation.js":"text/javascript", "app.js": "text/javascript", "style.css": "text/css", "voxel.js": "text/javascript", "voxel.css": "text/css", "voxel-scene.js": "text/javascript", "catalogue.js": "text/javascript", "catalogue.css": "text/css", "lobby.js":"text/javascript", "paper.css":"text/css"}
             if relative in allowed:
                 return self.send(200, file.read_bytes(), allowed[relative])
             if relative.startswith("assets/") and file.resolve().is_relative_to((ROOT / "assets").resolve()) and file.is_file():
@@ -144,6 +155,20 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(size))
             if not isinstance(data, dict): raise ValueError("A JSON object is required")
             path = urlparse(self.path).path
+            if path in ('/agents/api/simulation/start','/agents/api/simulation/action'):
+                with db() as c:
+                    if path.endswith('/start'):
+                        if c.execute("SELECT COUNT(*) FROM simulation_runs WHERE owner=?",(owner,)).fetchone()[0]>=100:raise ValueError('This browser has reached its 100-run limit.')
+                        run=hotel_sim.create(data.get('task','parcel'))
+                        c.execute("INSERT INTO simulation_runs VALUES(?,?,?)",(run['id'],owner,json.dumps(run)))
+                    else:
+                        if not isinstance(data.get('id'),str):raise ValueError('Provide a simulation run id.')
+                        row=c.execute("SELECT owner,data FROM simulation_runs WHERE id=?",(data.get('id'),)).fetchone()
+                        if not row:raise ValueError('Simulation run not found.')
+                        if row[0]!=owner:raise PermissionError('This run belongs to another browser.')
+                        run=hotel_sim.apply(json.loads(row[1]),data.get('action'),data)
+                        c.execute("UPDATE simulation_runs SET data=? WHERE id=?",(json.dumps(run),run['id']))
+                return self.send(200,hotel_sim.observe(run))
             if path.startswith('/agents/api/world/'):
                 return self.send(200, WORLD.command(owner, path.split('/')[-1], data))
             if path == "/agents/api/checkin":

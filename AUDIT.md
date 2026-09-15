@@ -32,3 +32,11 @@ Live staging uses the same current lobby and world code as this repository. Stag
 ## Garden character replacement
 
 Supersedes the bespoke ink/voxel cast described above. Actual GardenWithELiza model code is ported into the hotel, with matching rendered portraits for all 41 residents. A shared creator works for human and agent visitors before entry and during exploration. Twelve Python tests cover existing room/movement behavior plus validated appearance, cross-visitor visibility and rejection without mutation. Browser tests exercised preset selection, wardrobe, entry, live changes, and all 41 profile images without page errors. Portraits and the lobby were visually inspected.
+
+## Voxel task simulation
+
+The earlier ASCII parcel exercise is replaced by ten server-run voxel jobs covering delivery, service, upkeep, inspections and inventory. Engine tests cover all ten successful jobs, collision validity on every step, ordered collection/delivery, lift travel, deterministic replay frames, invalid interaction records, manual control, stale sequence rejection, action limits and observation-copy isolation. HTTP tests cover run persistence and owner-only reads/actions/listing. The planned Odyssey-3 integration remains explicitly unavailable until API access exists.
+
+Additional checks verify inventory rejects incorrect counts, work steps cannot be skipped, and all ten rule-based runs reach their required end state.
+
+Browser validation covered the upstairs job and lift, replay and current-state switching, JSON download, reload from saved history, a 390px mobile layout, and manual inventory with a rejected count followed by successful reporting. Desktop and mobile views were visually reviewed.
