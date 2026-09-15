@@ -13,6 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: python -m unittest test_world test_hotel test_simulation -v
+      - run: python -m unittest test_world test_hotel test_simulation test_security -v
       - run: node --check app.js && node --check catalogue.js && node --check lobby.js && node --check voxel.js && node --check voxel-scene.js && node --check garden-characters.js && node --check character-creator.js && node --check assets/garden/WanderAvatar.js && node --check simulation.js && node --check simulation-world.js
       - run: node test_characters.mjs
+      - run: node --check hermes.js

@@ -1,5 +1,6 @@
 """Grand Internet Hotel server. Python standard library and SQLite."""
-import hashlib, io, json, os, secrets, sqlite3, time, uuid, zipfile, threading
+import hashlib, io, json, os, secrets, sqlite3, time, uuid, zipfile, threading, shutil, socket
+from socketserver import BaseServer
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from http.cookies import SimpleCookie
 from pathlib import Path
@@ -15,6 +16,10 @@ DATA = Path(os.environ.get("HOTEL_DATA", str(ROOT / "data")))
 DATA.mkdir(exist_ok=True)
 DB = DATA / "hotel.sqlite3"
 MUTATION_LOCK = threading.Lock()
+MAX_DB_BYTES = 128 * 1024 * 1024
+
+def reject_constant(value):
+    raise ValueError("JSON numbers must be finite")
 
 class HotelConnection(sqlite3.Connection):
     def __exit__(self, *args):
@@ -35,6 +40,7 @@ def digest(value):
 
 def event(room, message):
     room["events"].append(dict(at=time.time(), message=message))
+    room["events"] = room["events"][-200:]
 
 def save(room, owner):
     with db() as c:
@@ -44,6 +50,13 @@ def public(room):
     return {k: room.get(k) for k in ("id", "name", "portrait", "number", "specialty", "status", "certificate", "version", "public")}
 
 class Handler(BaseHTTPRequestHandler):
+    server_version = "Hotel"
+    sys_version = ""
+
+    def setup(self):
+        super().setup()
+        self.connection.settimeout(10)
+
     def log_message(self, fmt, *args):
         # No cookies, packages, or user input in logs.
         pass
@@ -66,7 +79,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Cache-Control", "no-store" if mime == "application/json" else "no-cache")
         self.send_header("X-Robots-Tag", "noindex, nofollow")
-        self.send_header("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        self.send_header("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'")
         if getattr(self, "new_cookie", None):
             self.send_header("Set-Cookie", f"hotel_owner={self.new_cookie}; Path=/agents; Secure; HttpOnly; SameSite=Strict; Max-Age=31536000")
         if filename: self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
@@ -81,7 +96,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path.rstrip("/")
-        owner = self.owner()
+        if path.startswith('/agents/api/') and self.headers.get('Sec-Fetch-Site') == 'cross-site':
+            return self.send(403, {'error': 'Cross-site request not allowed'})
+        owner = self.owner() if path.startswith('/agents/api/') else None
         try:
             if path == "/agents/api/simulation":
                 with db() as c: rows=c.execute("SELECT data FROM simulation_runs WHERE owner=? ORDER BY rowid DESC LIMIT 20",(owner,)).fetchall()
@@ -125,6 +142,10 @@ class Handler(BaseHTTPRequestHandler):
                     z.writestr("hotel_agent/README.md", '# Your Hotel Agent\n\nRequires Python 3.9+. No dependencies or network access.\n\nRun: `echo \'{"task":"slugify","input":"Crème Brûlée"}\' | python runtime.py`\n\nTasks: slugify (ASCII URL slug), unique (stable scalar deduplication), sort_numbers (numeric ascending order). Input is JSON, output is JSON.\n\nTo roll back, copy rollback.json to agent.json. Keep the original files.\n\nThis package contains deterministic coding tools, not model weights or a general-purpose LLM. Results apply only to the named task suite and configuration.\n')
                 return self.send(200, buf.getvalue(), "application/zip", "hotel-agent-upgrade.zip")
             if path == "/agents/api/health": return self.send(200, {"status": "ok"})
+            if path == "/agents/downloads/hotel_client.py":
+                return self.send(200, (ROOT / 'hotel_client.py').read_bytes(), 'text/plain; charset=utf-8', 'hotel_client.py')
+            if path == '/agents/hermes.js':
+                return self.send(200, (ROOT / 'hermes.js').read_bytes(), 'text/javascript')
             relative = path.removeprefix("/agents/")
             file = ROOT / relative
             allowed = {"simulation-world.js":"text/javascript", "garden-characters.js":"text/javascript", "character-creator.js":"text/javascript", "simulation.js":"text/javascript", "app.js": "text/javascript", "style.css": "text/css", "voxel.js": "text/javascript", "voxel.css": "text/css", "voxel-scene.js": "text/javascript", "catalogue.js": "text/javascript", "catalogue.css": "text/css", "lobby.js":"text/javascript", "paper.css":"text/css"}
@@ -133,27 +154,41 @@ class Handler(BaseHTTPRequestHandler):
             if relative.startswith("assets/") and file.resolve().is_relative_to((ROOT / "assets").resolve()) and file.is_file():
                 mime = {".png":"image/png", ".webp":"image/webp", ".svg":"image/svg+xml", ".jpg":"image/jpeg", ".js":"text/javascript"}.get(file.suffix)
                 if mime: return self.send(200, file.read_bytes(), mime)
-            if path == "/agents" or (path.startswith("/agents/") and "." not in relative and not relative.startswith("api/")):
+            if path in ("", "/agents") or (path.startswith("/agents/") and "." not in relative and not relative.startswith("api/")):
                 return self.send(200, (ROOT / "index.html").read_bytes(), "text/html; charset=utf-8")
             return self.send(404, {"error": "Not found"})
         except PermissionError as e: self.send(403, {"error": str(e)})
         except ValueError as e: self.send(400, {"error": str(e)})
 
     def do_POST(self):
-        with MUTATION_LOCK:
-            self.handle_post()
-
-    def handle_post(self):
         if self.headers.get("Origin") not in (None, "https://thegrandinternethotel.com", "http://127.0.0.1:8049"):
             return self.send(403, {"error": "Origin not allowed"})
-        if "application/json" not in self.headers.get("Content-Type", ""):
+        if self.headers.get("Sec-Fetch-Site") == "cross-site":
+            return self.send(403, {"error": "Cross-site request not allowed"})
+        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
             return self.send(415, {"error": "JSON required"})
-        owner = self.owner()
+        if self.headers.get("Transfer-Encoding") or len(self.headers.get_all("Content-Length", [])) != 1:
+            return self.send(400, {"error": "One Content-Length header is required"})
         try:
             size = int(self.headers.get("Content-Length", "0"))
             if size < 2 or size > 32768: raise ValueError("Request must be between 2 and 32768 bytes")
-            data = json.loads(self.rfile.read(size))
+            raw = self.rfile.read(size)
+            if len(raw) != size: raise ValueError("Incomplete request")
+            data = json.loads(raw, parse_constant=reject_constant)
             if not isinstance(data, dict): raise ValueError("A JSON object is required")
+        except (ValueError, RecursionError):
+            return self.send(400, {"error": "Provide a JSON object of 2–32768 bytes with finite numbers"})
+        except TimeoutError:
+            return self.send(408, {"error": "Request timed out"})
+        # A slow body must never hold the lock used by every other visitor.
+        with MUTATION_LOCK:
+            if (DB.exists() and DB.stat().st_size >= MAX_DB_BYTES) or shutil.disk_usage(DATA).free < 512 * 1024 * 1024:
+                return self.send(503, {"error": "Hotel storage is temporarily full. Please try later."})
+            self.handle_post(data)
+
+    def handle_post(self, data):
+        owner = self.owner()
+        try:
             path = urlparse(self.path).path
             if path in ('/agents/api/simulation/start','/agents/api/simulation/action'):
                 with db() as c:
@@ -277,8 +312,23 @@ class Handler(BaseHTTPRequestHandler):
             save(room, owner)
             return self.send(200, room)
         except PermissionError as e: self.send(403, {"error": str(e)})
-        except (ValueError, TypeError, KeyError, json.JSONDecodeError) as e: self.send(400, {"error": str(e)})
+        except ValueError as e: self.send(400, {"error": str(e)})
+        except (TypeError, KeyError, OverflowError, RecursionError): self.send(400, {"error": "Invalid request fields"})
+        except sqlite3.Error: self.send(503, {"error": "Hotel storage is temporarily unavailable"})
+
+def make_server():
+    address = ("127.0.0.1", int(os.environ.get("PORT", "8049")))
+    if os.environ.get('LISTEN_PID') == str(os.getpid()) and os.environ.get('LISTEN_FDS') == '1':
+        # systemd owns the host-side listener. The process itself runs inside
+        # a private network namespace with no route to the host or internet.
+        server = ThreadingHTTPServer.__new__(ThreadingHTTPServer)
+        BaseServer.__init__(server, address, Handler)
+        server.socket = socket.socket(fileno=3)
+        server.server_address = server.socket.getsockname()
+        server.server_name, server.server_port = address
+        return server
+    return ThreadingHTTPServer(address, Handler)
 
 if __name__ == "__main__":
     db().close()
-    ThreadingHTTPServer(("127.0.0.1", int(os.environ.get("PORT", "8049"))), Handler).serve_forever()
+    make_server().serve_forever()

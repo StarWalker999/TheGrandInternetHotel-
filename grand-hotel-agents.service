@@ -1,14 +1,19 @@
 [Unit]
 Description=Grand Internet Hotel
 After=network.target
+Requires=grand-hotel-agents.socket
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
+User=grand-hotel
+Group=grand-hotel
+RootDirectory=/var/lib/grand-hotel-root
+BindReadOnlyPaths=/usr /lib /lib64 /opt/grand-hotel-agents
+BindPaths=/var/lib/grand-hotel-agents
 WorkingDirectory=/opt/grand-hotel-agents
 Environment=HOTEL_DATA=/var/lib/grand-hotel-agents
 Environment=PORT=8049
+Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStart=/usr/bin/python3 /opt/grand-hotel-agents/server.py
 Restart=on-failure
 RestartSec=3
@@ -16,8 +21,33 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
+PrivateNetwork=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+# Accept HTTPS-proxied requests; prohibit all initiated network/Unix connections.
+SystemCallFilter=~connect
+SystemCallArchitectures=native
+SystemCallErrorNumber=EPERM
 ReadWritePaths=/var/lib/grand-hotel-agents
 MemoryMax=192M
+CPUQuota=100%
+LimitNOFILE=256
 TasksMax=64
 UMask=0077
 
