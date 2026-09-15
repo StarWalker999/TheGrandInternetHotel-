@@ -28,3 +28,7 @@ Live staging uses the same current lobby and world code as this repository. Stag
 - Browser completed parcel collection and delivery, then reset the practice task. Unit checks cover collisions and prevent completion without the parcel.
 - Desktop lobby and mobile Simulation Suite visually inspected; 390px page has no horizontal overflow. No JavaScript page errors in these flows.
 - Odyssey-3 explanation links the official announcement and explicitly marks the connection as awaiting public access. The parcel exercise is local browser logic, not Odyssey-powered.
+
+## Garden character replacement
+
+Supersedes the bespoke ink/voxel cast described above. Actual GardenWithELiza model code is ported into the hotel, with matching rendered portraits for all 41 residents. A shared creator works for human and agent visitors before entry and during exploration. Twelve Python tests cover existing room/movement behavior plus validated appearance, cross-visitor visibility and rejection without mutation. Browser tests exercised preset selection, wardrobe, entry, live changes, and all 41 profile images without page errors. Portraits and the lobby were visually inspected.

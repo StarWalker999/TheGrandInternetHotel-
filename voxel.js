@@ -1,3 +1,4 @@
+import {mountCharacterCreator} from './character-creator.js';
 import {HotelScene} from './voxel-scene.js';
 
 export function mountWalk(host){
@@ -27,9 +28,11 @@ export function mountWalk(host){
   async function command(name,data,feedback){keys.clear();predicted=null;try{const result=await request(name,data);if(feedback)status(feedback);return result;}catch(e){if(!disposed)status(e.name==='TypeError'?'Connection lost. Movement will resume when the hotel reconnects.':e.message,true);throw e;}}
   try{scene=new HotelScene(el('walk-canvas'),{onResident:id=>window.openResidentCard?.(id),onGround:(x,z)=>{if(me)command('target',{x,z},'Walking to the selected spot.').catch(()=>{});}});scene.decorate(2);if(window.hotelWorldInitial)scene.update(window.hotelWorldInitial);}catch(e){el('walk-canvas').innerHTML='<div class="walk-unavailable"><h3>The 3D view is unavailable.</h3><p>This browser could not start WebGL. You can still enter, choose destinations, and use the shared movement API below.</p></div>';}
   const listen=(element,event,fn)=>element.addEventListener(event,fn,opts);
+  const creator=mountCharacterCreator(host,async appearance=>{if(me)await command('appearance',{appearance},'Character updated.');});
+  host.querySelectorAll('[data-create-character]').forEach(b=>listen(b,'click',()=>{keys.clear();creator.open();}));
   host.querySelectorAll('[data-enter]').forEach(b=>listen(b,'click',async()=>{
     host.querySelectorAll('[data-enter]').forEach(x=>x.disabled=true);
-    try{await command('enter',{kind:b.dataset.enter,name:el('visitor-name').value},'Welcome to the lobby. Walk around, meet a resident, or choose a floor.');scene?.canvas.focus();}
+    try{await command('enter',{kind:b.dataset.enter,name:el('visitor-name').value,appearance:creator.appearance},'Welcome to the lobby. Walk around, meet a resident, or choose a floor.');scene?.canvas.focus();}
     catch{}finally{host.querySelectorAll('[data-enter]').forEach(x=>x.disabled=false);}
   }));
   host.querySelectorAll('[data-enter]').forEach(b=>b.disabled=false);
@@ -42,7 +45,7 @@ export function mountWalk(host){
   function vector(){let a=0,b=0;if(keys.has('up'))b++;if(keys.has('down'))b--;if(keys.has('right'))a++;if(keys.has('left'))a--;const angle=scene?.azimuth||0;return{dx:a*Math.cos(angle)-b*Math.sin(angle),dz:-a*Math.sin(angle)-b*Math.cos(angle)};}
   async function move(){if(!me||movePending||!keys.size||disposed)return;movePending=true;try{await request('move',vector());}catch(e){if(!disposed)status('Connection lost. Reconnecting to the hotel…',true);}finally{movePending=false;}}
   const keymap={w:'up',ArrowUp:'up',s:'down',ArrowDown:'down',a:'left',ArrowLeft:'left',d:'right',ArrowRight:'right'};
-  listen(window,'keydown',e=>{if(!me||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;const key=keymap[e.key]||keymap[e.key.toLowerCase()];if(key){e.preventDefault();keys.add(key);move();}if(e.key.toLowerCase()==='e')interact();});
+  listen(window,'keydown',e=>{if(!me||host.querySelector('.character-creator[open]')||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;const key=keymap[e.key]||keymap[e.key.toLowerCase()];if(key){e.preventDefault();keys.add(key);move();}if(e.key.toLowerCase()==='e')interact();});
   listen(window,'keyup',e=>{const key=keymap[e.key]||keymap[e.key.toLowerCase()];if(key)keys.delete(key);});
   const clearKeys=()=>{keys.clear();host.querySelectorAll('.pressed').forEach(x=>x.classList.remove('pressed'));};listen(window,'blur',clearKeys);listen(document,'visibilitychange',()=>{if(document.hidden)clearKeys();});
   host.querySelectorAll('[data-direction]').forEach(b=>{
@@ -68,7 +71,7 @@ export function mountWalk(host){
   if(navigator.modelContext?.registerTool){
     const tools=[
       ['hotel_observe','Observe your location, other visitors, destinations and collision geometry.',{},()=>request()],
-      ['hotel_enter','Enter the shared voxel hotel as an agent.',{name:{type:'string'}},args=>request('enter',{kind:'agent',name:args.name||'Agent guest'})],
+      ['hotel_enter','Enter the shared voxel hotel as an agent.',{name:{type:'string'},appearance:{type:'object',description:'Character appearance: preset, colors, hairStyle, height and build.'}},args=>request('enter',{kind:'agent',name:args.name||'Agent guest',appearance:args.appearance||creator.appearance})],
       ['hotel_walk_to','Walk to an available named landmark. Observe until arrival.',{landmark:{type:'string',enum:['entrance','lobby','front_desk','lounge','library','workshop','lift']}},args=>request('target',args)],
       ['hotel_take_lift','Walk to the lift and travel to floor 0 (lobby) through 11.',{floor:{type:'integer',minimum:0,maximum:11}},args=>request('floor',args)],
       ['hotel_stop','Stop the current walking route.',{},()=>request('stop',{})],
@@ -76,5 +79,5 @@ export function mountWalk(host){
     for(const [name,description,properties,execute] of tools){try{navigator.modelContext.registerTool({name,description,inputSchema:{type:'object',properties,additionalProperties:false},execute:async args=>({content:[{type:'text',text:JSON.stringify(await execute(args))}]})});registered.push(name);}catch{}}
     if(registered.length)el('world-agent-support').textContent='Browser-agent walking tools and the HTTP movement API are available.';
   }
-  return{dispose(){disposed=true;abort.abort();clearInterval(pollingTimer);clearInterval(movementTimer);cancelAnimationFrame(frameId);keys.clear();scene?.dispose();for(const name of registered)try{navigator.modelContext.unregisterTool(name);}catch{}}};
+  return{dispose(){disposed=true;abort.abort();clearInterval(pollingTimer);clearInterval(movementTimer);cancelAnimationFrame(frameId);keys.clear();creator.dispose();scene?.dispose();for(const name of registered)try{navigator.modelContext.unregisterTool(name);}catch{}}};
 }

@@ -14,5 +14,5 @@ jobs:
         with:
           node-version: '22'
       - run: python -m unittest test_world test_hotel -v
-      - run: node --check app.js && node --check catalogue.js && node --check lobby.js && node --check voxel.js && node --check voxel-scene.js && node --check characters.js && node --check simulation.js
+      - run: node --check app.js && node --check catalogue.js && node --check lobby.js && node --check voxel.js && node --check voxel-scene.js && node --check garden-characters.js && node --check character-creator.js && node --check assets/garden/WanderAvatar.js && node --check simulation.js
       - run: node test_characters.mjs

@@ -1,4 +1,4 @@
-import {createResident} from './characters.js';
+import {createGardenCharacter,releaseCharacter} from './garden-characters.js';
 import * as T from './assets/three/three.module.js';
 
 const C={paper:0xf6f3eb,wall:0xe9e1cc,trim:0xf8f2df,stone:0xc7c1af,ink:0x383931,sage:0x8d9d7c,roof:0x74876b,orange:0xd97937,amber:0xecc879,wood:0x9e7959,rose:0xc69480,blue:0x859b9e,tile:0xe5e2d5};
@@ -86,13 +86,7 @@ function interior(solids,upper=false){const b=floorBase(upper);
   else{for(const side of [-1,1])for(let i=0;i<6;i++){const p=sign(String(i+1+(side>0?6:0)).padStart(2,'0'),.85,.45);p.position.set(side*3,1.9,-10+i*4);p.rotation.y=side<0?Math.PI/2:-Math.PI/2;g.add(p);}}
   return g;
 }
-function actor(kind,color=C.sage,character){if(kind==='agent')return createResident(character||'moss',Blocks,C,T);const g=new T.Group(),body=new Blocks();
-  if(kind==='human'){
-    body.box(0,1.1,0,.8,1.1,.5,color);body.box(0,1.95,0,.7,.7,.65,0xd8b99d);body.box(0,2.3,0,.78,.16,.72,C.ink);body.box(-.51,1.05,0,.24,1,.35,color);body.box(.51,1.05,0,.24,1,.35,color);
-    for(const x of [-.17,.17]){body.box(x,1.98,.34,.08,.09,.04,C.ink);body.box(x,.35,0,.26,.7,.35,C.ink);}
-  }
-  g.add(body.finish());return g;
-}
+function actor(kind,color,character,appearance){return createGardenCharacter(appearance||{preset:'wanderer'});}
 
 export class HotelScene {
   constructor(host,{preview=false,onGround=()=>{},onResident=()=>{}}={}){
@@ -132,7 +126,7 @@ export class HotelScene {
   setLayout(data){if(this.lobby)return;this.lobby=interior(data.ground_solids);this.upper=interior(data.upper_solids,true);this.scene.add(this.lobby,this.upper);this.lobby.visible=false;this.upper.visible=false;}
   update(snapshot){this.snapshot=snapshot;this.me=snapshot.people.find(p=>p.id===snapshot.you);this.setLayout(snapshot);const occupants=[...snapshot.people,...(snapshot.residents||[])];
     const ids=new Set(occupants.map(p=>p.id));for(const [id,mesh] of this.actorMeshes){if(!ids.has(id)){this.scene.remove(mesh);this.release(mesh);this.actorMeshes.delete(id);}}
-    for(const p of occupants){let m=this.actorMeshes.get(p.id);if(m&&m.userData.kind!==p.kind){this.scene.remove(m);this.release(m);this.actorMeshes.delete(p.id);m=null;}if(!m){m=actor(p.kind,p.portrait==='blue'?C.blue:p.portrait==='rose'?C.rose:p.id===snapshot.you?C.orange:C.sage,p.character);m.userData.kind=p.kind;m.position.set(p.x,0,p.z);this.scene.add(m);this.actorMeshes.set(p.id,m);}m.userData.state=p;}
+    for(const p of occupants){let m=this.actorMeshes.get(p.id);if(m&&(m.userData.kind!==p.kind||m.userData.appearanceKey!==JSON.stringify(p.appearance||{}))){this.scene.remove(m);this.release(m);this.actorMeshes.delete(p.id);m=null;}if(!m){m=actor(p.kind,p.portrait==='blue'?C.blue:p.portrait==='rose'?C.rose:p.id===snapshot.you?C.orange:C.sage,p.character,p.appearance||{});m.userData.kind=p.kind;m.position.set(p.x,0,p.z);this.scene.add(m);this.actorMeshes.set(p.id,m);}m.userData.state=p;}
     if(this.me){this.floor=this.me.floor;this.inside=this.floor>0||(Math.abs(this.me.x)<21.8&&this.me.z<11.7&&this.me.z>-12);this.exterior.visible=!this.inside;this.lobby.visible=this.inside&&this.floor===0;this.upper.visible=this.floor>0;this.yard.visible=this.floor===0;
       this.target.set(this.me.x,this.inside?1.5:9,this.me.z-(this.inside?0:8));}
     else{this.floor=0;this.inside=true;this.exterior.visible=false;this.lobby.visible=true;this.upper.visible=false;this.yard.visible=true;this.target.set(0,1.5,1);}
@@ -141,11 +135,11 @@ export class HotelScene {
   render(dt=.016){if(this.disposed)return;const aspect=this.width/this.height;let span=this.preview?57:this.me?(this.inside?(this.floor?27:37):54):43;span=span/this.zoom;if(aspect<1)span*=this.inside?1/aspect:Math.min(1.45,1/aspect);
     this.camera.left=-span*aspect/2;this.camera.right=span*aspect/2;this.camera.top=span/2;this.camera.bottom=-span/2;this.camera.updateProjectionMatrix();
     this.currentTarget.lerp(this.target,dt?Math.min(1,dt*7):1);const t=this.currentTarget;this.camera.position.set(t.x+Math.sin(this.azimuth)*65,t.y+(this.inside?66:33),t.z+Math.cos(this.azimuth)*65);this.camera.lookAt(t);
-    const occupiedLabels=[];for(const m of this.actorMeshes.values()){const p=m.userData.state,blend=dt?Math.min(1,dt*13):1;m.position.x+=(p.x-m.position.x)*blend;m.position.z+=(p.z-m.position.z)*blend;m.rotation.y=p.heading;const walking=p.walking||Math.hypot(p.x-m.position.x,p.z-m.position.z)>.04;m.position.y=dt&&walking?Math.sin(performance.now()*.012+(p.id.length%7))*.065:0;
+    const occupiedLabels=[];for(const m of this.actorMeshes.values()){const p=m.userData.state,blend=dt?Math.min(1,dt*13):1;m.position.x+=(p.x-m.position.x)*blend;m.position.z+=(p.z-m.position.z)*blend;m.rotation.y=p.heading;const walking=p.walking||Math.hypot(p.x-m.position.x,p.z-m.position.z)>.04;m.userData.animateGarden?.(dt?performance.now()/1000:0,!!dt&&walking);
       if(p.ambient&&this.labels){let tag=this.tags.get(p.id);if(!tag){tag=document.createElement('button');tag.className='resident-tag';tag.innerHTML='<b></b><span></span>';tag.onclick=e=>{e.stopPropagation();this.hoverTag=null;tag.style.zIndex='';this.onResident(p.id);};tag.onpointerenter=()=>{this.hoverTag=tag;tag.style.zIndex='8';};tag.onpointerleave=()=>{this.hoverTag=null;tag.style.zIndex='';};this.labels.append(tag);this.tags.set(p.id,tag);}const pt=new T.Vector3(m.position.x,3.15,m.position.z).project(this.camera);tag.hidden=!m.visible||(!this.inside&&Math.abs(p.x)<21.8&&p.z<12)||Math.abs(pt.x)>.93||Math.abs(pt.y)>.9;if(!this.hoverTag&&!tag.hidden){const w=Math.max(50,tag.offsetWidth),h=Math.max(24,tag.offsetHeight);let x=Math.max(w/2,Math.min(this.width-w/2,(pt.x+1)*this.width/2)),y=(1-pt.y)*this.height/2;for(let tries=0;tries<12&&occupiedLabels.some(a=>Math.abs(a.x-x)<(a.w+w)/2+5&&Math.abs(a.y-y)<(a.h+h)/2+5);tries++)y-=h+7;occupiedLabels.push({x,y,w,h});tag.style.left=x+'px';tag.style.top=y+'px';}tag.querySelector('b').textContent=p.name;tag.querySelector('span').textContent=p.speech||'';tag.setAttribute('aria-label','Meet '+p.name+', '+p.role);}
     }
     this.renderer.render(this.scene,this.camera);
   }
-  release(root){root.traverse(o=>{if(o.geometry&&o.geometry!==cubeGeometry)o.geometry.dispose();if(o.material){for(const m of(Array.isArray(o.material)?o.material:[o.material])){m.map?.dispose();m.dispose();}}});}
+  release(root){if(root.userData.animateGarden){releaseCharacter(root);return;}root.traverse(o=>{if(o.geometry&&o.geometry!==cubeGeometry)o.geometry.dispose();if(o.material){for(const m of(Array.isArray(o.material)?o.material:[o.material])){m.map?.dispose();m.dispose();}}});}
   dispose(){this.disposed=true;this.abort.abort();this.resizeObserver.disconnect();this.release(this.scene);this.renderer.dispose();this.renderer.forceContextLoss();this.canvas.remove();this.labels?.remove();}
 }

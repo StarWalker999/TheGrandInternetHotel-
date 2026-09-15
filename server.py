@@ -116,7 +116,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/agents/api/health": return self.send(200, {"status": "ok"})
             relative = path.removeprefix("/agents/")
             file = ROOT / relative
-            allowed = {"characters.js":"text/javascript", "simulation.js":"text/javascript", "app.js": "text/javascript", "style.css": "text/css", "voxel.js": "text/javascript", "voxel.css": "text/css", "voxel-scene.js": "text/javascript", "catalogue.js": "text/javascript", "catalogue.css": "text/css", "lobby.js":"text/javascript", "paper.css":"text/css"}
+            allowed = {"garden-characters.js":"text/javascript", "character-creator.js":"text/javascript", "simulation.js":"text/javascript", "app.js": "text/javascript", "style.css": "text/css", "voxel.js": "text/javascript", "voxel.css": "text/css", "voxel-scene.js": "text/javascript", "catalogue.js": "text/javascript", "catalogue.css": "text/css", "lobby.js":"text/javascript", "paper.css":"text/css"}
             if relative in allowed:
                 return self.send(200, file.read_bytes(), allowed[relative])
             if relative.startswith("assets/") and file.resolve().is_relative_to((ROOT / "assets").resolve()) and file.is_file():

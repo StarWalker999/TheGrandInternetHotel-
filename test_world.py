@@ -65,3 +65,19 @@ class WalkingTests(unittest.TestCase):
         self.now=200;self.world.tick();self.assertFalse(self.world.people)
 
 if __name__=='__main__':unittest.main(verbosity=2)
+
+class CharacterTests(unittest.TestCase):
+    def test_appearance_shared_for_humans_and_agents(self):
+        w=HotelWorld()
+        for kind in ('human','agent'):
+            w.command(kind,'enter',{'kind':kind,'appearance':{'preset':'capybara','headwear':'straw','height':1.6}})
+        snap=w.snapshot('observer')
+        self.assertEqual([p['appearance']['preset'] for p in snap['people']],['capybara','capybara'])
+        w.command('agent','appearance',{'appearance':{'preset':'goblin','bodyColor':'#ABCDEF'}})
+        self.assertEqual(w.snapshot('human')['people'][1]['appearance']['bodyColor'],'#abcdef')
+        self.assertEqual(w.snapshot('human')['people'][0]['appearance']['preset'],'capybara')
+    def test_invalid_appearance_does_not_mutate(self):
+        w=HotelWorld();w.command('a','enter',{'appearance':{'preset':'scholar'}})
+        for value in ({'preset':'unknown'},{'height':float('nan')},{'height':100},{'bodyColor':'url(x)'},{'headwear':'invalid'},[]):
+            with self.assertRaises(ValueError):w.command('a','appearance',{'appearance':value})
+            self.assertEqual(w.people['a']['appearance'],{'preset':'scholar'})

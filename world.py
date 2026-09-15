@@ -1,5 +1,6 @@
 """Shared voxel-hotel movement. No access to private agent-room data."""
 import math
+import re
 import secrets
 import time
 from collections import deque
@@ -30,8 +31,8 @@ LANDMARKS = {
     'lobby': {'name':'The lobby','x':0,'z':6},
     'front_desk': {'name':'Front desk','x':-8,'z':0,'route':'#/checkin'},
     'lounge': {'name':'The sitting room','x':-6,'z':6.5},
-    'library': {'name':'Athena · library','x':-10,'z':-8,'route':'#/services'},
-    'workshop': {'name':'Hephaestus · workshop','x':8,'z':-5,'route':'#/services'},
+    'library': {'name':'Athena Â· library','x':-10,'z':-8,'route':'#/services'},
+    'workshop': {'name':'Hephaestus Â· workshop','x':8,'z':-5,'route':'#/services'},
     'lift': {'name':'The lift','x':0,'z':-9},
 }
 
@@ -65,6 +66,27 @@ def path_to(x,z,tx,tz,floor):
     steps.reverse()
     return steps
 
+PRESETS=('wanderer','warden','scholar','forager','nomad','capybara','goblin','golem','doge','chad')
+def appearance(data):
+    if not isinstance(data,dict):raise ValueError('Character must be an object.')
+    result={}
+    for key,values in [('preset',PRESETS),('headwear',('none','straw','cap','top','bandana')),('hairStyle',('short','long','bun','ponytail','shaved')),('build',('slim','medium','stocky'))]:
+        if key in data:
+            if data[key] not in values:raise ValueError('Unknown character '+key+'.')
+            result[key]=data[key]
+    for key in ('skinColor','bodyColor','pantsColor','hairColor','eyeColor'):
+        if key in data:
+            if not isinstance(data[key],str) or not re.fullmatch(r'#[0-9a-fA-F]{6}',data[key]):raise ValueError('Choose a valid character color.')
+            result[key]=data[key].lower()
+    if 'height' in data:
+        height=data['height']
+        if type(height) not in (int,float) or not math.isfinite(height) or not 1.3<=height<=2.1:raise ValueError('Character height must be between 1.3 and 2.1.')
+        result['height']=height
+    return result
+
+def resident_appearance(index):
+    return {'skinColor':'#%02x%02x%02x'%(150+index*2,115+index,80+index),'preset':PRESETS[index%len(PRESETS)],'headwear':('straw','cap','top','bandana','none')[index%5],'bodyColor':['#456552','#374b72','#a55244','#887344','#574365','#376e70'][index%6], 'hairStyle':['short','long','bun','ponytail','shaved'][index%5],'height':round(1.4+(index%8)*.08,2),'build':['slim','medium','stocky'][index%3]}
+
 class HotelWorld:
     def __init__(self,clock=time.monotonic):
         self.clock=clock; self.last=clock(); self.people={};self.residents=[]
@@ -80,9 +102,10 @@ class HotelWorld:
                 if floor:
                     k=(floor-1)*3+j
                     name=upper_names[k];role=upper_roles[k];bio=name+' is '+upper_traits[k]+', with a place and a purpose of their own in the hotel.';service='services'
+                bio=name+' works as the hotel’s '+role.lower()+'. Find them around the desks and guest floors.'
                 ident=name.lower()
                 x,z=ground[j] if floor==0 else [(-6,-6),(6,2),(0,6)][j]
-                self.residents.append(dict(id='staff-'+ident,name=name,character=ident,role=role,portrait=color,bio=bio,service=service,home_floor=floor,room=f'{floor:02}{j+1}',floor=floor,x=float(x),z=float(z),heading=0.,kind='agent',ambient=True,path=[],phase=j,wait_until=self.last+j*.8,activity='Settling in',speech='',journeys=0))
+                self.residents.append(dict(id='staff-'+ident,name=name,character=ident,appearance=resident_appearance(len(self.residents)),role=role,portrait=color,bio=bio,service=service,home_floor=floor,room=f'{floor:02}{j+1}',floor=floor,x=float(x),z=float(z),heading=0.,kind='agent',ambient=True,path=[],phase=j,wait_until=self.last+j*.8,activity='Settling in',speech='',journeys=0))
 
     def tick_residents(self,now,dt):
         ground=[(-8,0),(-10,-6),(3,6),(-6,6),(8,-5),(11,3),(-3,-9),(6,8),(0,-9)]
@@ -104,7 +127,7 @@ class HotelWorld:
             p['phase']+=1
             if p['phase']%2:
                 p['activity']=['Checking the register','Reading at a desk','Delivering a package','Chatting in the lounge','Working at a desk'][i%5]
-                p['speech']=['Welcome to the Grand.','One more page…','A delivery for upstairs.','Shall we find a seat?','Let’s check that again.'][i%5]
+                p['speech']=['Welcome to the Grand.','One more pageâ€¦','A delivery for upstairs.','Shall we find a seat?','Letâ€™s check that again.'][i%5]
                 p['wait_until']=now+7+(i%5);continue
             points=upper if p['floor'] else ground
             tx,tz=points[(p['phase']//2+i)%len(points)]
@@ -141,7 +164,7 @@ class HotelWorld:
         if owner in self.people:self.people[owner]['seen']=self.clock()
         visible=[]
         for p in self.people.values():
-            visible.append({k:p[k] for k in ('id','name','kind','x','z','floor','heading','destination')})
+            visible.append({k:p[k] for k in ('id','name','kind','x','z','floor','heading','destination','appearance')})
             visible[-1]['walking']=bool(p['path'])
         me=self.people.get(owner)
         residents=[{**{k:v for k,v in p.items() if k not in ('path','wait_until','phase','next_floor','journeys')},'walking':bool(p['path'])} for p in self.residents]
@@ -152,6 +175,7 @@ class HotelWorld:
         self.tick();now=self.clock()
         if command == 'enter':
             kind=data.get('kind','human')
+            chosen=appearance(data.get('appearance',{}))
             if kind not in ('human','agent'):raise ValueError('Choose human or agent.')
             if owner not in self.people and len(self.people)>=64:raise ValueError('The hotel walk is full. Try again shortly.')
             if owner not in self.people:
@@ -159,10 +183,13 @@ class HotelWorld:
                     'kind':kind,'x':0.,'z':6.,'floor':0,'heading':math.pi,'path':[],
                     'seen':now,'move_at':now-.2,'destination':'Lobby'}
             else:self.people[owner]['kind']=kind
+            self.people[owner]['appearance']=chosen
+            self.people[owner]['name']=str(data.get('name',self.people[owner]['name'])).strip()[:32] or 'Guest'
         elif command == 'leave': self.people.pop(owner,None)
         else:
             p=self.get(owner)
-            if command == 'move':
+            if command == 'appearance':p['appearance']=appearance(data.get('appearance',{}))
+            elif command == 'move':
                 dx,dz=float(data.get('dx',0)),float(data.get('dz',0))
                 if not math.isfinite(dx) or not math.isfinite(dz):raise ValueError('Movement must be finite.')
                 p['path']=[];p.pop('lift_to',None);p['destination']='Walking'
@@ -187,7 +214,7 @@ class HotelWorld:
             elif command == 'floor':
                 f=data.get('floor')
                 if type(f) is not int or not 0<=f<12:raise ValueError('The hotel has floors 0 through 11.')
-                p['path']=path_to(p['x'],p['z'],0,-9,p['floor']);p['lift_to']=f;p['destination']='Lift → '+('Lobby' if f==0 else f'Floor {f:02}')
+                p['path']=path_to(p['x'],p['z'],0,-9,p['floor']);p['lift_to']=f;p['destination']='Lift â†’ '+('Lobby' if f==0 else f'Floor {f:02}')
             elif command == 'stop':p['path']=[];p.pop('lift_to',None);p['destination']='Stopped'
             else:raise ValueError('Unknown walking command.')
         return self.snapshot(owner)

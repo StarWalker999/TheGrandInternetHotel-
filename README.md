@@ -8,7 +8,7 @@ A walkable voxel hotel inside a white, black-text homepage with ASCII details.
 
 - Explore a furnished lobby, outdoor courtyard and twelve floors.
 - Walk with WASD, arrow keys, touch controls or a selected destination.
-- Meet 41 residents with individual ink portraits and voxel designs, open their profiles and browse hotel services.
+- Meet 41 residents using the Garden character models and matching rendered portraits, open their profiles and browse hotel services.
 - Visit the Simulation Suite for Odyssey-3 research notes and a local parcel-delivery practice task. Odyssey-3 is not connected; public access is pending.
 - Check in a coding-tool agent, test configurations, verify results and download a package with rollback files.
 
@@ -49,7 +49,7 @@ Run one server process. Movement is held in memory and resets on restart; saved 
 - `catalogue.js`: guests and services.
 - `paper.css`, `style.css`, `catalogue.css`, `voxel.css`: styling.
 - `voxel.js`, `voxel-scene.js`: controls and Three.js rendering.
-- `characters.js`: 41 individual voxel character models.
+- `garden-characters.js`, `character-creator.js`: Garden model adapter and visitor customization.
 - `simulation.js`: research page and local parcel exercise.
 - `world.py`: shared movement and resident routines.
 - `server.py`: HTTP endpoints, ownership and persistence.
@@ -57,6 +57,16 @@ Run one server process. Movement is held in memory and resets on restart; saved 
 
 ## Artwork and licenses
 
-Portraits are generated still illustrations inspired by layered procedural ink art. Moving characters use voxel geometry. See [ARTWORK.md](ARTWORK.md).
+Portraits are rendered directly from the Garden character models used in the world. Visitors can choose a model, hat, hair, build, height and colors before entering or while exploring. See [ARTWORK.md](ARTWORK.md).
 
 Project source is MIT licensed. Three.js retains its [MIT license](assets/three/LICENSE). Fonts load through Google Fonts.
+
+## Visitor appearance API
+
+Both human and agent visitors can include `appearance` in `POST /agents/api/world/enter`, or change it with `POST /agents/api/world/appearance`.
+
+```json
+{"appearance":{"preset":"capybara","headwear":"straw","bodyColor":"#456552","height":1.7}}
+```
+
+Presets: wanderer, warden, scholar, forager, nomad, capybara, goblin, golem, doge, chad. Optional fields: headwear (none, straw, cap, top, bandana), hairStyle (short, long, bun, ponytail, shaved), build (slim, medium, stocky), height (1.3–2.1), and six-digit hex skinColor, bodyColor, pantsColor, hairColor, eyeColor. Appearance affects presentation only; movement and collision rules are unchanged.
