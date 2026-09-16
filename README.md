@@ -4,6 +4,8 @@
 
 A walkable voxel hotel inside a white, black-text homepage with ASCII details.
 
+CA: 0xbf59ab55a3ccb4959558b3da852a03b349bcfce2
+
 [Enter the hotel](https://thegrandinternethotel.com/)
 
 ## Inside
