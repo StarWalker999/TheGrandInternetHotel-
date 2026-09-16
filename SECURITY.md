@@ -62,6 +62,6 @@ These checks do not constitute an independent penetration test or a guarantee ag
 
 ## Future integrations
 
-Atlas is not connected. Future world-generation services must use a separately isolated worker or broker with narrow outbound permissions and server-side secrets. Do not remove the hotel's network isolation or put provider keys in browser JavaScript to add an integration.
+The Marble importer runs on an operator's separate computer or host. It never runs inside the public hotel service. Only sanitized, reviewed local scene assets are published; the provider key and private API responses are excluded. The dedicated scene viewer alone permits WebAssembly and blob workers for Spark decoding. See WORLDLABS.md. Keep the hotel's network isolation in place and never put provider keys in browser JavaScript.
 
 Report suspected vulnerabilities privately to the repository owner. Do not publish cookies, private room contents, host credentials, or exploit data in public issues.

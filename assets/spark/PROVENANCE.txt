@@ -1,0 +1,4 @@
+Spark 2.2.0, MIT license
+https://github.com/sparkjsdev/spark
+Registry integrity verified: sha512-wf5F2YAmPXnjm20/MgXYer9FQTXz2JOCo05HwxFkaD7Guk9rHVPIwdJ6fq0oF9ME0heMvYj+TxS6DTrucvy6KA==
+Module imports rewritten to local Three.js r180 and its MIT-licensed Pass helper.

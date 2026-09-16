@@ -10,6 +10,7 @@ from workshop import assess, propose
 from certification import verify, BENCHMARK
 from world import WORLD
 import hotel_sim
+import worldlabs
 
 ROOT = Path(__file__).parent
 DATA = Path(os.environ.get("HOTEL_DATA", str(ROOT / "data")))
@@ -71,7 +72,7 @@ class Handler(BaseHTTPRequestHandler):
         self.new_cookie = secrets.token_hex(32)
         return self.new_cookie
 
-    def send(self, status, body, mime="application/json", filename=None):
+    def send(self, status, body, mime="application/json", filename=None, viewer=False):
         if not isinstance(body, bytes): body = json.dumps(body).encode()
         self.send_response(status)
         self.send_header("Content-Type", mime)
@@ -81,7 +82,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Robots-Tag", "noindex, nofollow")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-        self.send_header("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'")
+        policy = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'"
+        if viewer:
+            policy = policy.replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'") + "; worker-src 'self' blob:"
+        self.send_header("Content-Security-Policy", policy)
         if getattr(self, "new_cookie", None):
             self.send_header("Set-Cookie", f"hotel_owner={self.new_cookie}; Path=/agents; Secure; HttpOnly; SameSite=Strict; Max-Age=31536000")
         if filename: self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
@@ -100,6 +104,19 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(403, {'error': 'Cross-site request not allowed'})
         owner = self.owner() if path.startswith('/agents/api/') else None
         try:
+            if path == '/agents/api/worldlabs': return self.send(200, worldlabs.active(ROOT))
+            if path == '/agents/marble-viewer.html':
+                return self.send(200, (ROOT/'marble-viewer.html').read_bytes(), 'text/html; charset=utf-8', viewer=True)
+            if path == '/agents/marble-viewer.css':
+                return self.send(200, (ROOT/'marble-viewer.css').read_bytes(), 'text/css')
+            if path in ('/agents/marble.js','/agents/marble-viewer.js'):
+                return self.send(200, (ROOT/path.split('/')[-1]).read_bytes(), 'text/javascript')
+            if path.startswith('/agents/assets/worldlabs/'):
+                name=path.split('/')[-1]
+                info=worldlabs.active(ROOT)
+                if info['status']=='ready' and path in (info['splat'],info.get('collider')):
+                    return self.send(200, (ROOT/'assets/worldlabs'/name).read_bytes(), 'application/octet-stream')
+                return self.send(404, {'error':'Not found'})
             if path == "/agents/api/simulation":
                 with db() as c: rows=c.execute("SELECT data FROM simulation_runs WHERE owner=? ORDER BY rowid DESC LIMIT 20",(owner,)).fetchall()
                 return self.send(200,{'tasks':hotel_sim.TASKS,'runs':[{k:r[k] for k in ('id','task','status','actions','rejected','created')} for r in [json.loads(row[0]) for row in rows]]})

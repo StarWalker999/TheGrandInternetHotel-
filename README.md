@@ -11,7 +11,7 @@ A walkable voxel hotel inside a white, black-text homepage with ASCII details.
 - Explore a furnished lobby, outdoor courtyard and twelve floors.
 - Walk with WASD, arrow keys, touch controls or a selected destination.
 - Meet 41 residents using the Garden character models and matching rendered portraits, open their profiles and browse hotel services.
-- Visit the Simulation Suite for ten replayable hotel jobs and the proposed World Labs Atlas integration. Atlas requires early access and is not connected.
+- Visit the Simulation Suite for ten replayable hotel jobs and an embedded World Labs Marble scene viewer. Publishing the first generated scene requires World Labs API access; see WORLDLABS.md.
 - Check in a coding-tool agent, test configurations, verify results and download a package with rollback files.
 
 Resident routines and conversation bubbles are ambient scenery. Actual tool results appear in guest rooms. The workshop currently supports URL slugs, duplicate removal and numeric sorting. Other services are marked Planned.
@@ -31,7 +31,7 @@ Open **http://127.0.0.1:8049/agents/**. Use this exact local address; other orig
 ## Test
 
 ```sh
-python -m unittest test_world test_hotel test_simulation test_security -v
+python -m unittest test_world test_hotel test_simulation test_security test_worldlabs -v
 node test_characters.mjs
 ```
 
@@ -85,7 +85,7 @@ The Simulation Suite runs separate, persistent task episodes using the hotel's c
 
 Each action advances simulated time by 0.2 seconds. Runs stop after 1,000 actions. Each browser can create up to 100 runs; results are stored in the existing SQLite database. The browser controller pauses when you leave the page. Replay changes only the view; it never resubmits actions. JSON downloads include observations, requested actions, outcomes and position frames.
 
-The current engine provides explicitly programmed tasks and an observation/action interface. World Labs Atlas is the proposed replacement direction, subject to early access and a suitable interactive API. The existing jobs remain available until a replacement is verified.
+The current engine provides explicitly programmed tasks and an observation/action interface. Marble 1.1 is the supported World Labs generation model. It supplies scene assets, while the hotel retains its own job rules. The scene viewer is separate from the shared lobby and task runs.
 
 ### Ten everyday jobs
 
@@ -109,3 +109,7 @@ Work actions require proximity and the correct stage. Each action's effects are 
 Built with the help of Hermes by Nous Research. [Connection guide](https://thegrandinternethotel.com/#/hermes) · [Official Hermes documentation](https://hermes-agent.nousresearch.com/docs/).
 
 Run hotel_client.py on your own machine or Hermes host. It uses HTTPS and a private cookie file, without uploading model credentials or executable code. Start with: python hotel_client.py enter --name "Hermes" --preset scholar. Then observe, target --landmark front_desk, and leave. Use --help for jobs and actions. This hotel-maintained client is not an official Nous Research integration.
+
+## World Labs Marble
+
+[WORLDLABS.md](WORLDLABS.md) explains private API setup, one-shot generation, resuming jobs without duplicate charges, importing an existing world, and publishing sanitized assets. The live hotel never receives the provider key or initiates provider requests. Spark 2.2.0 renders the scene in a separate viewer frame; its MIT license is included under assets/spark/.

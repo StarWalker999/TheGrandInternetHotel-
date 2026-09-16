@@ -6,3 +6,7 @@ __pycache__/
 .env.*
 *.zip
 .DS_Store
+
+# Generated World Labs output and private operation files
+worldlabs-private/
+assets/worldlabs/
